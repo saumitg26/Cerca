@@ -19,7 +19,7 @@ genai.configure(api_key=api_key)
 # ---------------------------
 # LOAD HOUSING DATA
 # ---------------------------
-with open("listings.json", "r") as f:  # <-- updated filename
+with open("listings.json", "r") as f:  # JSON file
     housing_data = json.load(f)
 
 # ---------------------------
@@ -29,7 +29,7 @@ app = FastAPI(title="GMU Housing Gemini API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # in production, replace with your frontend origin
+    allow_origins=["*"],  # replace with frontend origin in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -58,8 +58,8 @@ class ChatResponse(BaseModel):
 # ---------------------------
 def ask_gemini(user_query: str, listings: dict) -> str:
     """
-    Send user query + housing data to Gemini, ask for top 3 with explanation,
-    and return the raw text response.
+    Sends user query + housing data to Gemini 1.5,
+    asks for top 3 with explanation, returns raw text.
     """
     prompt = f"""
 You are an expert GMU student housing assistant.
@@ -89,7 +89,7 @@ Return valid JSON only, like:
 """
 
     response = models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-1.5",  # <-- updated model
         contents=prompt,
         temperature=0  # deterministic output
     )
@@ -105,14 +105,12 @@ def chat(request: ChatRequest):
     try:
         recommendations = json.loads(raw_response)
     except Exception as e:
-        # If parsing fails, return an empty list and include raw text in reply
+        # Fallback if JSON parsing fails
         print("Failed to parse Gemini JSON:", e)
-        recommendations = []
         return ChatResponse(
             reply=f"Could not parse model output. Raw text:\n{raw_response}",
             recommendations=[]
         )
 
     reply_text = f"I found {len(recommendations)} housing options matching your request."
-
     return ChatResponse(reply=reply_text, recommendations=recommendations)
